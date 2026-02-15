@@ -25,7 +25,7 @@ It's like having a German teacher right in your browser! 🎓
 Open your terminal/command prompt and type:
 
 ```bash
-pip install fastapi uvicorn spacy httpx
+pip install fastapi uvicorn spacy httpx libretranslate
 python -m spacy download de_core_news_sm
 ```
 
@@ -48,15 +48,12 @@ cp -r src dist/
 
 ### 4. Start the Translator (LibreTranslate) 🌍
 
-This tool needs a translator to convert German to English. Run LibreTranslate with Docker:
+This tool needs a translator to convert German to English. Run LibreTranslate Locally:
 
 ```bash
-docker run -d --name libretranslate -p 5000:5000 libretranslate/libretranslate:latest --load-only de,en
+libretranslate --load-only de,en
 ```
-
 **Wait a minute** for it to download and start. You can check if it's ready by opening: http://localhost:5000
-
-> 💡 **No Docker?** You can also [download LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) and run it manually on port 5000.
 
 ### 5. Run the Brain (Backend) 🧠
 
