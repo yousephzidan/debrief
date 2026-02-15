@@ -1,0 +1,65 @@
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #0f1115;
+  color: #e6e6e6;
+}
+
+.container {
+  width: 320px;
+  padding: 16px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.original {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #aaa;
+}
+
+.translation {
+  background: #1a1d23;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.token {
+  background: #1a1d23;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.word {
+  font-weight: 600;
+}
+
+.info {
+  display: flex;
+  gap: 4px;
+  opacity: 0.7;
+}
+
+.case {
+  color: #4cafef;
+}
+
+.loading {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
