@@ -46,7 +46,19 @@ cp public/manifest.json dist/
 cp -r src dist/
 ```
 
-### 4. Run the Brain (Backend) 🧠
+### 4. Start the Translator (LibreTranslate) 🌍
+
+This tool needs a translator to convert German to English. Run LibreTranslate with Docker:
+
+```bash
+docker run -d --name libretranslate -p 5000:5000 libretranslate/libretranslate:latest --load-only de,en
+```
+
+**Wait a minute** for it to download and start. You can check if it's ready by opening: http://localhost:5000
+
+> 💡 **No Docker?** You can also [download LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) and run it manually on port 5000.
+
+### 5. Run the Brain (Backend) 🧠
 
 In the main folder (where `backend.py` lives), run:
 
@@ -56,7 +68,7 @@ uvicorn backend:app --reload --port 8000
 
 Keep this window open! This is the brain that analyzes text.
 
-### 5. Add to Chrome 🌐
+### 6. Add to Chrome 🌐
 
 1. Open Chrome and go to: `chrome://extensions/`
 2. Turn on **"Developer mode"** (toggle in top right)
@@ -77,7 +89,8 @@ Keep this window open! This is the brain that analyzes text.
 ## Troubleshooting
 
 **Popup doesn't show?**
-- Make sure the backend is running (step 4)
+- Make sure LibreTranslate is running (step 4)
+- Make sure the backend is running (step 5)
 - Check that you copied the files (step 3)
 - Try reloading the extension in Chrome
 
