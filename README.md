@@ -12,7 +12,7 @@ It's like having a German teacher right in your browser! 🎓
 
 ## What You Need Before Starting
 
-- **Python 3.11 or newer** (like a special language your computer understands)
+- **Python 3.11** (like a special language your computer understands)
 - **Node.js** (to build the extension)
 - **Google Chrome** browser
 
