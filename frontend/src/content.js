@@ -120,29 +120,36 @@ function positionPopup(popup, rect) {
 }
 
 async function fetchAnalysis(text, popup) {
-  try {
-    const response = await fetch("http://localhost:8000/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text })
-    });
-    
-    if (!response.ok) throw new Error("Analysis failed");
-    
-    const data = await response.json();
-    renderResults(popup, data);
-    
-    // Reposition after content loads
-    const range = window.getSelection().getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    positionPopup(popup, rect);
-    
-  } catch (error) {
-    console.error("Debrief analysis error:", error);
-    renderError(popup, error.message);
+  const urls = ["http://127.0.0.1:8000/analyze", "http://localhost:8000/analyze"];
+  let lastError;
+  
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) throw new Error("Analysis failed");
+      
+      const data = await response.json();
+      renderResults(popup, data);
+      
+      // Reposition after content loads
+      const range = window.getSelection().getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      positionPopup(popup, rect);
+      return;
+      
+    } catch (error) {
+      console.error(`Debrief analysis error (${url}):`, error);
+      lastError = error;
+    }
   }
+  renderError(popup, lastError?.message || "Failed to analyze");
 }
 
 function renderResults(popup, data) {
@@ -151,26 +158,23 @@ function renderResults(popup, data) {
   // Build tokens HTML
   const tokensHtml = data.tokens.map((t, i) => `
     <div class="debrief-token" style="animation-delay: ${i * 50}ms">
-      <div class="debrief-token-word">${escapeHtml(t.text)}</div>
+      ${t.translation ? `<span class="debrief-token-translation">${escapeHtml(t.translation)}</span>` : ""}
+      <span class="debrief-token-word">${escapeHtml(t.text)}</span>
       <div class="debrief-token-info">
-        <span class="debrief-pos">${escapeHtml(t.pos)}</span>
-        <span class="debrief-dep">${escapeHtml(t.dep)}</span>
-        ${t.case?.length > 0 ? `<span class="debrief-case">${escapeHtml(t.case[0])}</span>` : ""}
+        <span class="debrief-tag debrief-pos">${escapeHtml(t.pos.toLowerCase())}</span>
+        ${t.dep !== "punct" ? `<span class="debrief-tag debrief-dep">${escapeHtml(t.dep)}</span>` : ""}
+        ${t.case?.length > 0 ? `<span class="debrief-tag debrief-case">${escapeHtml(t.case[0].toLowerCase())}</span>` : ""}
       </div>
     </div>
   `).join("");
   
   contentDiv.innerHTML = `
-    <div class="debrief-translation-section">
-      <div class="debrief-section-label">Translation</div>
-      <div class="debrief-translation">${escapeHtml(data.translation)}</div>
-    </div>
-    
-    <div class="debrief-tokens-section">
-      <div class="debrief-section-label">Word Analysis</div>
-      <div class="debrief-tokens">
-        ${tokensHtml}
-      </div>
+    <div class="debrief-german">${escapeHtml(data.original)}</div>
+    <div class="debrief-english-label">English</div>
+    <div class="debrief-translation">${escapeHtml(data.translation)}</div>
+    <div class="debrief-section-label">Word Breakdown</div>
+    <div class="debrief-tokens">
+      ${tokensHtml}
     </div>
   `;
 }
@@ -199,99 +203,105 @@ function addPopupStyles() {
     .debrief-popup {
       position: absolute;
       z-index: 2147483647;
-      background: linear-gradient(145deg, #1a1f2e 0%, #0f1419 100%);
-      border-radius: 16px;
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.1),
-        0 0 20px rgba(76, 175, 239, 0.1);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #e8eaed;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1a1a1a;
       overflow: hidden;
-      animation: debrief-popup-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: debrief-popup-in 0.25s ease;
       max-height: 500px;
       overflow-y: auto;
+      min-width: 320px;
     }
     
     @keyframes debrief-popup-in {
-      from {
-        opacity: 0;
-        transform: translateY(-10px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+      from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
     
     .debrief-popup-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.03);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 16px;
+      background: #2563eb;
+      color: #fff;
     }
     
     .debrief-popup-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
-      color: #8ab4f8;
-      letter-spacing: 0.3px;
+      color: #fff;
     }
     
     .debrief-close-btn {
-      background: none;
+      background: rgba(255, 255, 255, 0.2);
       border: none;
-      color: #9aa0a6;
-      font-size: 22px;
-      line-height: 1;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 300;
       cursor: pointer;
-      padding: 0;
       width: 28px;
       height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 6px;
-      transition: all 0.2s ease;
+      transition: background 0.2s;
     }
     
     .debrief-close-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #e8eaed;
+      background: rgba(255, 255, 255, 0.3);
     }
     
     .debrief-popup-content {
-      padding: 18px;
+      padding: 16px;
     }
     
-    .debrief-selected-text {
-      font-size: 13px;
-      color: #9aa0a6;
-      margin-bottom: 16px;
-      padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 8px;
-      border-left: 3px solid #8ab4f8;
-      font-style: italic;
+    .debrief-german {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1e293b;
+      margin-bottom: 12px;
       line-height: 1.5;
+    }
+    
+    .debrief-english-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    
+    .debrief-translation {
+      background: #f0fdf4;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      margin-bottom: 16px;
     }
     
     .debrief-loading {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 12px;
-      padding: 20px;
-      color: #9aa0a6;
-      font-size: 14px;
+      padding: 30px;
+      color: #64748b;
+      font-size: 13px;
     }
     
     .debrief-spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid rgba(138, 180, 248, 0.2);
-      border-top-color: #8ab4f8;
+      border: 2px solid #e2e8f0;
+      border-top-color: #2563eb;
       border-radius: 50%;
       animation: debrief-spin 0.8s linear infinite;
     }
@@ -301,96 +311,90 @@ function addPopupStyles() {
     }
     
     .debrief-section-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #5f6368;
-      margin-bottom: 10px;
-    }
-    
-    .debrief-translation-section {
-      margin-bottom: 20px;
-    }
-    
-    .debrief-translation {
-      background: linear-gradient(135deg, rgba(138, 180, 248, 0.1) 0%, rgba(138, 180, 248, 0.05) 100%);
-      padding: 14px 16px;
-      border-radius: 12px;
-      font-size: 15px;
-      line-height: 1.6;
-      color: #e8eaed;
-      border: 1px solid rgba(138, 180, 248, 0.15);
-    }
-    
-    .debrief-tokens-section {
-      margin-top: 4px;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 8px;
     }
     
     .debrief-tokens {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
     }
     
     .debrief-token {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 10px 12px;
-      min-width: 60px;
-      animation: debrief-token-in 0.3s ease forwards;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      min-width: 65px;
+      transition: all 0.2s;
     }
     
     .debrief-token:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(138, 180, 248, 0.3);
-      transform: translateY(-2px);
+      border-color: #2563eb;
+      background: #eff6ff;
     }
     
-    @keyframes debrief-token-in {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .debrief-token-translation {
+      font-size: 10px;
+      color: #94a3b8;
+      font-style: italic;
     }
     
     .debrief-token-word {
       font-weight: 600;
-      font-size: 14px;
-      color: #e8eaed;
-      margin-bottom: 6px;
+      font-size: 13px;
+      color: #1e293b;
     }
     
     .debrief-token-info {
       display: flex;
-      gap: 6px;
-      font-size: 11px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .debrief-tag {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
     }
     
     .debrief-pos {
-      color: #81c995;
-      font-weight: 500;
+      background: #dbeafe;
+      color: #1d4ed8;
     }
     
     .debrief-dep {
-      color: #9aa0a6;
+      background: #fef3c7;
+      color: #b45309;
     }
     
     .debrief-case {
-      color: #8ab4f8;
-      font-weight: 600;
-      background: rgba(138, 180, 248, 0.15);
-      padding: 1px 6px;
-      border-radius: 4px;
+      background: #fce7f3;
+      color: #be185d;
+    }
+    
+    .debrief-token-in {
+      animation: debrief-token-in 0.3s ease forwards;
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    
+    @keyframes debrief-token-in {
+      to { opacity: 1; transform: translateY(0); }
     }
     
     .debrief-error {
       text-align: center;
       padding: 24px;
+      color: #dc2626;
     }
     
     .debrief-error-icon {
@@ -401,31 +405,25 @@ function addPopupStyles() {
     .debrief-error-message {
       font-size: 14px;
       font-weight: 600;
-      color: #e8eaed;
       margin-bottom: 6px;
     }
     
     .debrief-error-details {
       font-size: 12px;
-      color: #9aa0a6;
+      color: #64748b;
     }
     
-    /* Scrollbar styling */
     .debrief-popup::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
     
     .debrief-popup::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.02);
+      background: #f1f5f9;
     }
     
     .debrief-popup::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
-    
-    .debrief-popup::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: #cbd5e1;
+      border-radius: 3px;
     }
   `;
   document.head.appendChild(style);

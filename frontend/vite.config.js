@@ -43,6 +43,7 @@ const copyContentScript = () => ({
 
 export default defineConfig({
   plugins: [react(), copyContentScript()],
+  base: './',
   build: {
     outDir: 'dist',
     rollupOptions: {
